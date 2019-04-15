@@ -35,6 +35,27 @@ var (
 				ID: "666",
 			},
 		},
+		Order: 2,
+	}
+	firstCodeModel = models.Code{
+		Code:  "555", // number of the beast \m/
+		Label: "first",
+		Links: &models.CodeLinks{
+			Self: &models.Link{
+				ID: "555",
+			},
+		},
+		Order: 1,
+	}
+	lastCodeModel = models.Code{
+		Code:  "777", // number of the beast \m/
+		Label: "last",
+		Links: &models.CodeLinks{
+			Self: &models.Link{
+				ID: "777",
+			},
+		},
+		Order: 3,
 	}
 )
 
@@ -156,6 +177,49 @@ func TestGetCodes_Success(t *testing.T) {
 				So(err, ShouldBeNil)
 
 				So(&res, ShouldResemble, expectedResult)
+
+				So(mockDatastore.GetCodesCalls(), ShouldHaveLength, 1)
+				So(mockDatastore.GetCodesCalls()[0].CodeListID, ShouldEqual, testCodelistID)
+				So(mockDatastore.GetCodesCalls()[0].Edition, ShouldEqual, testEdition)
+			})
+		})
+	})
+}
+
+func TestGetCodes_Sorting(t *testing.T) {
+	Convey("Given a valid request", t, func() {
+		expectedResult := &models.CodeResults{
+			Count: 3,
+			Items: []models.Code{lastCodeModel, firstCodeModel, codeModel},
+		}
+
+		mockDatastore := &storetest.DataStoreMock{
+			GetCodesFunc: func(ctx context.Context, codeListID string, edition string) (*models.CodeResults, error) {
+				return expectedResult, nil
+			},
+		}
+
+		Convey("when getCodes is called", func() {
+			router := mux.NewRouter()
+
+			CreateCodeListAPI(router, mockDatastore, "", "")
+
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(http.MethodGet, "http://localhost:8080/code-lists/$codelist_id$/editions/$edition$/codes", nil)
+
+			router.ServeHTTP(w, r)
+
+			Convey("then a 200 status is returned and the list in the body should be sorted", func() {
+				So(w.Code, ShouldEqual, http.StatusOK)
+
+				var res models.CodeResults
+				err := json.Unmarshal(w.Body.Bytes(), &res)
+				So(err, ShouldBeNil)
+				So(res, ShouldNotBeNil)
+				So(len(res.Items), ShouldEqual, 3)
+				So(res.Items[0], ShouldResemble, firstCodeModel)
+				So(res.Items[1], ShouldResemble, codeModel)
+				So(res.Items[2], ShouldResemble, lastCodeModel)
 
 				So(mockDatastore.GetCodesCalls(), ShouldHaveLength, 1)
 				So(mockDatastore.GetCodesCalls()[0].CodeListID, ShouldEqual, testCodelistID)

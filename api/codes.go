@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/gorilla/mux"
@@ -24,6 +25,10 @@ func (c *CodeListAPI) getCodes(w http.ResponseWriter, r *http.Request) {
 		handleError(ctx, w, err, data)
 		return
 	}
+
+	sort.Slice(codes.Items, func(i, j int) bool {
+		return codes.Items[i].Order < codes.Items[j].Order
+	})
 
 	for _, item := range codes.Items {
 		if err := item.UpdateLinks(c.apiURL, id, edition); err != nil {

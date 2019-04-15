@@ -20,6 +20,7 @@ type Code struct {
 	Code  string     `json:"id"`
 	Label string     `json:"label"`
 	Links *CodeLinks `json:"links"`
+	Order int        `json:"order"`
 }
 
 // CodeLinks contains links for a code resource
